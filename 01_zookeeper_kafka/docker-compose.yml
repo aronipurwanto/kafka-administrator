@@ -1,0 +1,152 @@
+# docker-compose.yml
+# File ini mendefinisikan layanan ZooKeeper, 5 broker Kafka, dan Kafka UI menggunakan Docker Compose.
+# Ini adalah setup kluster multi-broker yang lebih realistis dengan antarmuka web untuk manajemen.
+
+version: '3.8' # Menggunakan versi Docker Compose 3.8
+
+services:
+  # Layanan ZooKeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0 # Menggunakan image ZooKeeper dari Confluent
+    hostname: zookeeper # Nama host untuk layanan ZooKeeper
+    container_name: zookeeper # Nama kontainer Docker
+    ports:
+      - "2181:2181" # Memetakan port 2181 dari kontainer ke host
+    environment:
+      # Konfigurasi ZooKeeper
+      ZOOKEEPER_CLIENT_PORT: 2181 # Port untuk koneksi klien ZooKeeper
+      ZOOKEEPER_TICK_TIME: 2000 # Durasi tick dalam milidetik
+    restart: always # Selalu restart kontainer jika berhenti
+
+  # Layanan Kafka Broker 1
+  kafka1:
+    image: confluentinc/cp-kafka:7.5.0 # Menggunakan image Kafka dari Confluent
+    hostname: kafka1 # Nama host untuk layanan Kafka
+    container_name: kafka1 # Nama kontainer Docker
+    ports:
+      - "9092:29092" # Memetakan port 9092 dari host ke port internal 29092 di kontainer
+    environment:
+      KAFKA_BROKER_ID: 1 # ID unik untuk broker ini
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181' # Alamat koneksi ke ZooKeeper
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT # Mendefinisikan protokol keamanan listener
+      # KAFKA_ADVERTISED_LISTENERS:
+      # PLAINTEXT://<nama_service_internal>:<port_internal_docker>,PLAINTEXT_HOST://<ip_host_atau_localhost>:<port_external_host>
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3 # Faktor replikasi untuk topik offset (disarankan 3 untuk kluster multi-broker)
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0 # Menghilangkan delay rebalance awal
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2 # Minimum ISR untuk log transaksi (disarankan 2 untuk RF=3)
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3 # Faktor replikasi untuk log transaksi (disarankan 3 untuk kluster multi-broker)
+      KAFKA_JMX_PORT: 9991 # Port JMX unik untuk pemantauan
+      KAFKA_JMX_HOSTNAME: localhost # Hostname untuk JMX
+    depends_on:
+      - zookeeper # Kafka tergantung pada ZooKeeper
+    restart: always # Selalu restart kontainer jika berhenti
+
+  # Layanan Kafka Broker 2
+  kafka2:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka2
+    container_name: kafka2
+    ports:
+      - "9093:29092" # Port eksternal unik
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:29092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_JMX_PORT: 9992
+      KAFKA_JMX_HOSTNAME: localhost
+    depends_on:
+      - zookeeper
+    restart: always
+
+  # Layanan Kafka Broker 3
+  kafka3:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka3
+    container_name: kafka3
+    ports:
+      - "9094:29092" # Port eksternal unik
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:29092,PLAINTEXT_HOST://localhost:9094
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_JMX_PORT: 9993
+      KAFKA_JMX_HOSTNAME: localhost
+    depends_on:
+      - zookeeper
+    restart: always
+
+  # Layanan Kafka Broker 4
+  kafka4:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka4
+    container_name: kafka4
+    ports:
+      - "9095:29092" # Port eksternal unik
+    environment:
+      KAFKA_BROKER_ID: 4
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka4:29092,PLAINTEXT_HOST://localhost:9095
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_JMX_PORT: 9994
+      KAFKA_JMX_HOSTNAME: localhost
+    depends_on:
+      - zookeeper
+    restart: always
+
+  # Layanan Kafka Broker 5
+  kafka5:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka5
+    container_name: kafka5
+    ports:
+      - "9096:29092" # Port eksternal unik
+    environment:
+      KAFKA_BROKER_ID: 5
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka5:29092,PLAINTEXT_HOST://localhost:9096
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_JMX_PORT: 9995
+      KAFKA_JMX_HOSTNAME: localhost
+    depends_on:
+      - zookeeper
+    restart: always
+
+  # Layanan Kafka UI
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest # Menggunakan image Kafka UI terbaru
+    container_name: kafka-ui # Nama kontainer Docker
+    ports:
+      - "8080:8080" # Memetakan port 8080 dari kontainer ke host
+    environment:
+      # Konfigurasi Kafka UI untuk terhubung ke kluster Kafka
+      KAFKA_CLUSTERS_0_NAME: 'My Local Kafka Cluster' # Nama yang akan ditampilkan di Kafka UI
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka1:29092,kafka2:29092,kafka3:29092,kafka4:29092,kafka5:29092' # Daftar broker internal
+      KAFKA_CLUSTERS_0_ZOOKEEPER: 'zookeeper:2181' # Alamat ZooKeeper internal
+      KAFKA_CLUSTERS_0_JMXPORT: 9991 # Port JMX untuk broker pertama (Kafka UI dapat mendeteksi yang lain)
+      KAFKA_CLUSTERS_0_JMXHOSTNAME: kafka1 # Hostname JMX untuk broker pertama
+    depends_on:
+      - kafka1 # Kafka UI tergantung pada semua broker Kafka
+      - kafka2
+      - kafka3
+      - kafka4
+      - kafka5
+    restart: always # Selalu restart kontainer jika berhenti

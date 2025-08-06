@@ -79,7 +79,7 @@ services:
     container_name: kafka3
     ports:
       - "9094:29092" # Port eksternal unik
-      - "9093:29093" # Port eksternal unik
+      - "9093:9093" # Port eksternal unik
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'

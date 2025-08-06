@@ -1,123 +1,94 @@
-# docker-compose.yml
-# File ini mendefinisikan layanan ZooKeeper, 5 broker Kafka, dan Kafka UI menggunakan Docker Compose.
-# Ini adalah setup kluster multi-broker yang lebih realistis dengan antarmuka web untuk manajemen.
+version: '3.8'
 
-version: '3.8' # Menggunakan versi Docker Compose 3.8
+x-kafka-common: &kafka-common
+  image: confluentinc/cp-kafka:7.5.0
+  environment:
+    KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+    KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+    KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+  depends_on:
+    - zookeeper
+  restart: always
+  volumes:
+    - ./jmx_exporter:/etc/jmx_exporter
 
 services:
-  # Layanan ZooKeeper
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0 # Menggunakan image ZooKeeper dari Confluent
-    hostname: zookeeper # Nama host untuk layanan ZooKeeper
-    container_name: zookeeper # Nama kontainer Docker
+    image: confluentinc/cp-zookeeper:7.5.0
+    hostname: zookeeper
+    container_name: zookeeper
     ports:
-      - "2181:2181" # Memetakan port 2181 dari kontainer ke host
+      - "2181:2181"
     environment:
-      # Konfigurasi ZooKeeper
-      ZOOKEEPER_CLIENT_PORT: 2181 # Port untuk koneksi klien ZooKeeper
-      ZOOKEEPER_TICK_TIME: 2000 # Durasi tick dalam milidetik
-    restart: always # Selalu restart kontainer jika berhenti
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    restart: always
 
-  # Layanan Kafka Broker 1
   kafka1:
-    image: confluentinc/cp-kafka:7.5.0 # Menggunakan image Kafka dari Confluent
-    hostname: kafka1 # Nama host untuk layanan Kafka
-    container_name: kafka1 # Nama kontainer Docker
+    <<: *kafka-common
+    hostname: kafka1
+    container_name: kafka1
     ports:
-      - "9092:29092" # Memetakan port 9092 dari host ke port internal 29092 di kontainer
-      - "9091:9091"
+      - "9092:29092"
     environment:
-      KAFKA_BROKER_ID: 1 # ID unik untuk broker ini
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181' # Alamat koneksi ke ZooKeeper
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT # Mendefinisikan protokol keamanan listener
-      # KAFKA_ADVERTISED_LISTENERS:
-      # PLAINTEXT://<nama_service_internal>:<port_internal_docker>,PLAINTEXT_HOST://<ip_host_atau_localhost>:<port_external_host>
+      <<: *kafka-common.environment
+      KAFKA_BROKER_ID: 1
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3 # Faktor replikasi untuk topik offset (disarankan 3 untuk kluster multi-broker)
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0 # Menghilangkan delay rebalance awal
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2 # Minimum ISR untuk log transaksi (disarankan 2 untuk RF=3)
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3 # Faktor replikasi untuk log transaksi (disarankan 3 untuk kluster multi-broker)
-      KAFKA_JMX_PORT: 9991 # Port JMX unik untuk pemantauan
-      KAFKA_JMX_HOSTNAME: localhost # Hostname untuk JMX
-    depends_on:
-      - zookeeper # Kafka tergantung pada ZooKeeper
-    restart: always # Selalu restart kontainer jika berhenti
-    command: [ "sh", "-c", "java -jar /etc/jmx_exporter/jmx_exporter.jar 9991 /etc/jmx_exporter/config.yml & /etc/confluent/docker/run" ]
-    volumes:
-      - ./jmx_exporter:/etc/jmx_exporter
+      KAFKA_JMX_PORT: 9991
+      KAFKA_JMX_HOSTNAME: localhost
+    command: ["sh", "-c", "java -jar /etc/jmx_exporter/jmx_exporter.jar 9991 /etc/jmx_exporter/config.yml & /etc/confluent/docker/run"]
 
-  # Layanan Kafka Broker 2
   kafka2:
-    image: confluentinc/cp-kafka:7.5.0
+    <<: *kafka-common
     hostname: kafka2
     container_name: kafka2
     ports:
-      - "9093:29092" # Port eksternal unik
-      - "9092:9092" # Port eksternal unik
+      - "9093:29092"
     environment:
+      <<: *kafka-common.environment
       KAFKA_BROKER_ID: 2
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:29092,PLAINTEXT_HOST://localhost:9093
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
       KAFKA_JMX_PORT: 9992
       KAFKA_JMX_HOSTNAME: localhost
-    depends_on:
-      - zookeeper
-    restart: always
-    command: [ "sh", "-c", "java -jar /etc/jmx_exporter/jmx_exporter.jar 9992 /etc/jmx_exporter/config.yml & /etc/confluent/docker/run" ]
-    volumes:
-      - ./jmx_exporter:/etc/jmx_exporter
+    command: ["sh", "-c", "java -jar /etc/jmx_exporter/jmx_exporter.jar 9992 /etc/jmx_exporter/config.yml & /etc/confluent/docker/run"]
 
-  # Layanan Kafka Broker 3
   kafka3:
-    image: confluentinc/cp-kafka:7.5.0
+    <<: *kafka-common
     hostname: kafka3
     container_name: kafka3
     ports:
-      - "9094:29092" # Port eksternal unik
-      - "9093:9093" # Port eksternal unik
+      - "9094:29092"
     environment:
+      <<: *kafka-common.environment
       KAFKA_BROKER_ID: 3
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9094
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:29092,PLAINTEXT_HOST://localhost:9094
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
       KAFKA_JMX_PORT: 9993
       KAFKA_JMX_HOSTNAME: localhost
-    depends_on:
-      - zookeeper
-    restart: always
-    command: [ "sh", "-c", "java -jar /etc/jmx_exporter/jmx_exporter.jar 9993 /etc/jmx_exporter/config.yml & /etc/confluent/docker/run" ]
-    volumes:
-      - ./jmx_exporter:/etc/jmx_exporter
+    command: ["sh", "-c", "java -jar /etc/jmx_exporter/jmx_exporter.jar 9993 /etc/jmx_exporter/config.yml & /etc/confluent/docker/run"]
 
-  # Layanan Kafka UI
   kafka-ui:
-    image: provectuslabs/kafka-ui:latest # Menggunakan image Kafka UI terbaru
-    container_name: kafka-ui # Nama kontainer Docker
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
     ports:
-      - "8080:8080" # Memetakan port 8080 dari kontainer ke host
+      - "8080:8080"
     environment:
-      # Konfigurasi Kafka UI untuk terhubung ke kluster Kafka
-      KAFKA_CLUSTERS_0_NAME: 'My Local Kafka Cluster' # Nama yang akan ditampilkan di Kafka UI
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka1:29092,kafka2:29092,kafka3:29092' # Daftar broker internal
-      KAFKA_CLUSTERS_0_ZOOKEEPER: 'zookeeper:2181' # Alamat ZooKeeper internal
-      KAFKA_CLUSTERS_0_JMXPORT: 9991 # Port JMX untuk broker pertama (Kafka UI dapat mendeteksi yang lain)
-      KAFKA_CLUSTERS_0_JMXHOSTNAME: kafka1 # Hostname JMX untuk broker pertama
+      KAFKA_CLUSTERS_0_NAME: 'My Local Kafka Cluster'
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka1:29092,kafka2:29092,kafka3:29092'
+      KAFKA_CLUSTERS_0_ZOOKEEPER: 'zookeeper:2181'
+      KAFKA_CLUSTERS_0_JMXPORT: 9991
+      KAFKA_CLUSTERS_0_JMXHOSTNAME: kafka1
     depends_on:
-      - kafka1 # Kafka UI tergantung pada semua broker Kafka
+      - kafka1
       - kafka2
       - kafka3
-    restart: always # Selalu restart kontainer jika berhenti
+    restart: always
 
-  # Layanan Prometheus
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -132,7 +103,6 @@ services:
       - kafka3
     restart: always
 
-  # Layanan Grafana
   grafana:
     image: grafana/grafana:latest
     container_name: grafana

@@ -1,22 +1,13 @@
-# prometheus.yml
-# Konfigurasi Prometheus untuk mengumpulkan metrik dari JMX Exporter Kafka
-
 global:
-  scrape_interval: 15s # Prometheus akan mengumpulkan metrik setiap 15 detik
+  scrape_interval: 15s
 
 scrape_configs:
-  - job_name: 'kafka-brokers' # Nama pekerjaan scrape
+  - job_name: 'kafka1'
     static_configs:
-      # Daftar target (JMX Exporter) untuk setiap broker Kafka
-      - targets: ['kafka1:9991'] # hostname:port JMX Exporter untuk kafka1
-        labels:
-          broker_id: '1' # Label untuk mengidentifikasi broker
-          cluster: 'local-kafka'
+      - targets: ['kafka1:9991']
+  - job_name: 'kafka2'
+    static_configs:
       - targets: ['kafka2:9992']
-        labels:
-          broker_id: '2'
-          cluster: 'local-kafka'
+  - job_name: 'kafka3'
+    static_configs:
       - targets: ['kafka3:9993']
-        labels:
-          broker_id: '3'
-          cluster: 'local-kafka'

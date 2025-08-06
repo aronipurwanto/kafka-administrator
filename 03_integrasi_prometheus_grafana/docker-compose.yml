@@ -1,0 +1,241 @@
+# docker-compose.yml
+# File ini mendefinisikan layanan ZooKeeper, 5 broker Kafka, Kafka UI, Prometheus, dan Grafana
+# untuk setup kluster multi-broker yang lengkap dengan monitoring.
+
+version: '3.8' # Menggunakan versi Docker Compose 3.8
+
+services:
+  # Layanan ZooKeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    restart: always
+
+  # Layanan Kafka Broker 1
+  kafka1:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka1
+    container_name: kafka1
+    ports:
+      - "9092:29092" # Port untuk klien Kafka
+      - "9991:9991" # Port untuk JMX Exporter
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_JMX_PORT: 9991 # Port JMX internal untuk Kafka
+      KAFKA_JMX_HOSTNAME: 0.0.0.0 # Agar JMX dapat diakses dari luar kontainer
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        user_admin="admin-password"
+        user_order_proc="order-processor-password"
+        user_inv_mgr="inventory-manager-password"
+        user_data_analyst="data-analyst-password";
+    depends_on:
+      - zookeeper
+    restart: always
+    # Menjalankan JMX Exporter sebagai proses terpisah di dalam kontainer Kafka
+    # Membutuhkan file jmx_exporter.jar dan config.yml di folder ./jmx_exporter
+    command: ["sh", "-c", "java -jar /etc/jmx_exporter/jmx_exporter.jar 9991 /etc/jmx_exporter/config.yml & /etc/confluent/docker/run"]
+    volumes:
+      - ./jmx_exporter:/etc/jmx_exporter # Mount folder jmx_exporter ke dalam kontainer
+
+  # Layanan Kafka Broker 2
+  kafka2:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka2
+    container_name: kafka2
+    ports:
+      - "9093:29092"
+      - "9992:9992" # Port untuk JMX Exporter
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:29092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_JMX_PORT: 9992
+      KAFKA_JMX_HOSTNAME: 0.0.0.0
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        user_admin="admin-password"
+        user_order_proc="order-processor-password"
+        user_inv_mgr="inventory-manager-password"
+        user_data_analyst="data-analyst-password";
+    depends_on:
+      - zookeeper
+    restart: always
+    command: ["sh", "-c", "java -jar /etc/jmx_exporter/jmx_exporter.jar 9992 /etc/jmx_exporter/config.yml & /etc/confluent/docker/run"]
+    volumes:
+      - ./jmx_exporter:/etc/jmx_exporter
+
+  # Layanan Kafka Broker 3
+  kafka3:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka3
+    container_name: kafka3
+    ports:
+      - "9094:29092"
+      - "9993:9993" # Port untuk JMX Exporter
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:29092,PLAINTEXT_HOST://localhost:9094
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_JMX_PORT: 9993
+      KAFKA_JMX_HOSTNAME: 0.0.0.0
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        user_admin="admin-password"
+        user_order_proc="order-processor-password"
+        user_inv_mgr="inventory-manager-password"
+        user_data_analyst="data-analyst-password";
+    depends_on:
+      - zookeeper
+    restart: always
+    command: ["sh", "-c", "java -jar /etc/jmx_exporter/jmx_exporter.jar 9993 /etc/jmx_exporter/config.yml & /etc/confluent/docker/run"]
+    volumes:
+      - ./jmx_exporter:/etc/jmx_exporter
+
+  # Layanan Kafka Broker 4
+  kafka4:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka4
+    container_name: kafka4
+    ports:
+      - "9095:29092"
+      - "9994:9994" # Port untuk JMX Exporter
+    environment:
+      KAFKA_BROKER_ID: 4
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka4:29092,PLAINTEXT_HOST://localhost:9095
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_JMX_PORT: 9994
+      KAFKA_JMX_HOSTNAME: 0.0.0.0
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        user_admin="admin-password"
+        user_order_proc="order-processor-password"
+        user_inv_mgr="inventory-manager-password"
+        user_data_analyst="data-analyst-password";
+    depends_on:
+      - zookeeper
+    restart: always
+    command: ["sh", "-c", "java -jar /etc/jmx_exporter/jmx_exporter.jar 9994 /etc/jmx_exporter/config.yml & /etc/confluent/docker/run"]
+    volumes:
+      - ./jmx_exporter:/etc/jmx_exporter
+
+  # Layanan Kafka Broker 5
+  kafka5:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka5
+    container_name: kafka5
+    ports:
+      - "9096:29092"
+      - "9995:9995" # Port untuk JMX Exporter
+    environment:
+      KAFKA_BROKER_ID: 5
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka5:29092,PLAINTEXT_HOST://localhost:9096
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_JMX_PORT: 9995
+      KAFKA_JMX_HOSTNAME: 0.0.0.0
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_SASL_JAAS_CONFIG: |
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        user_admin="admin-password"
+        user_order_proc="order-processor-password"
+        user_inv_mgr="inventory-manager-password"
+        user_data_analyst="data-analyst-password";
+    depends_on:
+      - zookeeper
+    restart: always
+    command: ["sh", "-c", "java -jar /etc/jmx_exporter/jmx_exporter.jar 9995 /etc/jmx_exporter/config.yml & /etc/confluent/docker/run"]
+    volumes:
+      - ./jmx_exporter:/etc/jmx_exporter
+
+  # Layanan Kafka UI
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: 'My Local Kafka Cluster'
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: 'kafka1:29092,kafka2:29092,kafka3:29092,kafka4:29092,kafka5:29092'
+      KAFKA_CLUSTERS_0_ZOOKEEPER: 'zookeeper:2181'
+      # Kafka UI juga bisa memantau JMX, tapi untuk lab ini kita fokus ke Prometheus+Grafana
+    depends_on:
+      - kafka1
+      - kafka2
+      - kafka3
+      - kafka4
+      - kafka5
+    restart: always
+
+  # Layanan Prometheus
+  prometheus:
+    image: prom/prometheus:latest # Menggunakan image Prometheus terbaru
+    container_name: prometheus
+    ports:
+      - "9090:9090" # Port untuk UI Prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml # Mount file konfigurasi Prometheus
+    command: --config.file=/etc/prometheus/prometheus.yml # Menentukan file konfigurasi
+    depends_on:
+      - kafka1 # Prometheus tergantung pada broker Kafka untuk scrape JMX
+      - kafka2
+      - kafka3
+      - kafka4
+      - kafka5
+    restart: always
+
+  # Layanan Grafana
+  grafana:
+    image: grafana/grafana:latest # Menggunakan image Grafana terbaru
+    container_name: grafana
+    ports:
+      - "3000:3000" # Port untuk UI Grafana
+    depends_on:
+      - prometheus # Grafana tergantung pada Prometheus sebagai sumber data
+    restart: always

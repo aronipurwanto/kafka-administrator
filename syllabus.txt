@@ -1,0 +1,23 @@
+Hari 1:
+
+Introduction to Apache Kafka and Architecture
+
+Installing Kafka and Zookeeper
+
+Kafka Cluster and Cluster Configuration
+
+Hari 2:
+
+Kafka Topics, Partitions and Replication concepts
+
+Konfigurasi Kafka ACL's and Basic Security (SSL/SASL)
+
+Monitoring Kafka Cluster (Using Kafka Manager, Prometheus, Grafana)
+
+Hari 3:
+
+Backup and Restore
+
+Performance Tuning (Producer / Consumer settings, Brokers Configs)
+
+Troubleshoot Kafka Cluster and Best Practices

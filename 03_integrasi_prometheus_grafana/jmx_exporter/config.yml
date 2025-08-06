@@ -1,0 +1,81 @@
+# jmx_exporter/config.yml
+# Konfigurasi JMX Exporter untuk Kafka.
+# Ini mendefinisikan metrik JMX mana yang akan diekspos.
+
+startDelaySeconds: 0
+host: 0.0.0.0
+port: 9991 # Port ini akan diganti oleh command di docker-compose.yml
+ssl: false
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+rules:
+  - pattern : "kafka.server<type=(.+), name=(.+), clientId=(.+), topic=(.+), partition=(.+)>"
+    labels:
+      topic: "$4"
+      partition: "$5"
+      clientId: "$3"
+      name: "$2"
+      type: "$1"
+  - pattern : "kafka.server<type=(.+), name=(.+), clientId=(.+), topic=(.+)>"
+    labels:
+      topic: "$4"
+      clientId: "$3"
+      name: "$2"
+      type: "$1"
+  - pattern : "kafka.server<type=(.+), name=(.+), clientId=(.+)>"
+    labels:
+      clientId: "$3"
+      name: "$2"
+      type: "$1"
+  - pattern : "kafka.server<type=(.+), name=(.+)>"
+    labels:
+      name: "$2"
+      type: "$1"
+  - pattern : "kafka.controller<type=(.+), name=(.+)>"
+    labels:
+      name: "$2"
+      type: "$1"
+  - pattern : "kafka.network<type=(.+), name=(.+), listener=(.+)>"
+    labels:
+      listener: "$3"
+      name: "$2"
+      type: "$1"
+  - pattern : "kafka.network<type=(.+), name=(.+)>"
+    labels:
+      name: "$2"
+      type: "$1"
+  - pattern : "kafka.log<type=(.+), name=(.+)>"
+    labels:
+      name: "$2"
+      type: "$1"
+  - pattern : "kafka.cluster<type=(.+), name=(.+)>"
+    labels:
+      name: "$2"
+      type: "$1"
+  - pattern : "kafka.coordinator<type=(.+), name=(.+)>"
+    labels:
+      name: "$2"
+      type: "$1"
+  - pattern : "kafka.admin<type=(.+), name=(.+)>"
+    labels:
+      name: "$2"
+      type: "$1"
+  - pattern : "kafka.producer<type=(.+), client-id=(.+)>"
+    labels:
+      clientId: "$2"
+      type: "$1"
+  - pattern : "kafka.consumer<type=(.+), client-id=(.+)>"
+    labels:
+      clientId: "$2"
+      type: "$1"
+  - pattern : "kafka.consumer<type=(.+), client-id=(.+), topic=(.+)>"
+    labels:
+      clientId: "$2"
+      topic: "$3"
+      type: "$1"
+  - pattern : "kafka.consumer<type=(.+), client-id=(.+), topic=(.+), partition=(.+)>"
+    labels:
+      clientId: "$2"
+      topic: "$3"
+      partition: "$4"
+      type: "$1"

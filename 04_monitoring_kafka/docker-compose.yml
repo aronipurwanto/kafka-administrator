@@ -1,20 +1,5 @@
 version: '3.8'
 
-x-kafka-common: &kafka-common
-  image: confluentinc/cp-kafka:7.5.0
-  environment:
-    KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
-    KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-    KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
-    KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
-  depends_on:
-    - zookeeper
-  restart: always
-  volumes:
-    - ./jmx_exporter:/etc/jmx_exporter
-
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -28,49 +13,79 @@ services:
     restart: always
 
   kafka1:
-    <<: *kafka-common
+    image: confluentinc/cp-kafka:7.5.0
     hostname: kafka1
     container_name: kafka1
     ports:
       - "9092:29092"
     environment:
-      <<: *kafka-common.environment
       KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
       KAFKA_JMX_PORT: 9991
       KAFKA_JMX_HOSTNAME: localhost
+    depends_on:
+      - zookeeper
+    restart: always
     command: ["sh", "-c", "java -jar /etc/jmx_exporter/jmx_exporter.jar 9991 /etc/jmx_exporter/config.yml & /etc/confluent/docker/run"]
+    volumes:
+      - ./jmx_exporter:/etc/jmx_exporter
 
   kafka2:
-    <<: *kafka-common
+    image: confluentinc/cp-kafka:7.5.0
     hostname: kafka2
     container_name: kafka2
     ports:
       - "9093:29092"
     environment:
-      <<: *kafka-common.environment
       KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:29092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
       KAFKA_JMX_PORT: 9992
       KAFKA_JMX_HOSTNAME: localhost
+    depends_on:
+      - zookeeper
+    restart: always
     command: ["sh", "-c", "java -jar /etc/jmx_exporter/jmx_exporter.jar 9992 /etc/jmx_exporter/config.yml & /etc/confluent/docker/run"]
+    volumes:
+      - ./jmx_exporter:/etc/jmx_exporter
 
   kafka3:
-    <<: *kafka-common
+    image: confluentinc/cp-kafka:7.5.0
     hostname: kafka3
     container_name: kafka3
     ports:
       - "9094:29092"
     environment:
-      <<: *kafka-common.environment
       KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9094
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:29092,PLAINTEXT_HOST://localhost:9094
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
       KAFKA_JMX_PORT: 9993
       KAFKA_JMX_HOSTNAME: localhost
+    depends_on:
+      - zookeeper
+    restart: always
     command: ["sh", "-c", "java -jar /etc/jmx_exporter/jmx_exporter.jar 9993 /etc/jmx_exporter/config.yml & /etc/confluent/docker/run"]
+    volumes:
+      - ./jmx_exporter:/etc/jmx_exporter
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest

@@ -1,6 +1,7 @@
 # docker-compose.yml
 # File ini mendefinisikan layanan ZooKeeper, 5 broker Kafka, Kafka UI, Prometheus, dan Grafana
 # untuk setup kluster multi-broker yang lengkap dengan monitoring.
+# Fitur ACL telah dinonaktifkan untuk mengizinkan akses bagi semua pengguna yang diautentikasi.
 
 version: '3.8' # Menggunakan versi Docker Compose 3.8
 
@@ -28,16 +29,18 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT_HOST,SASL_PLAINTEXT:SASL_PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:29092,PLAINTEXT_HOST://localhost:9092 # Listener yang diiklankan ke klien
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
       KAFKA_JMX_PORT: 9991 # Port JMX internal untuk Kafka
       KAFKA_JMX_HOSTNAME: 0.0.0.0 # Agar JMX dapat diakses dari luar kontainer
-      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
-      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      # ACLs DINONAKTIFKAN: Hapus Authorizer Class Name dan izinkan semua jika tidak ada ACL
+      KAFKA_AUTHORIZER_CLASS_NAME: "" # Mengosongkan kelas authorizer untuk menonaktifkan ACLs
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true" # Izinkan semua akses jika tidak ada ACL yang ditemukan
+      # Konfigurasi JAAS untuk SASL PLAIN (User Credentials)
       KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_SASL_JAAS_CONFIG: |
         org.apache.kafka.common.security.plain.PlainLoginModule required
@@ -46,8 +49,8 @@ services:
         user_inv_mgr="inventory-manager-password"
         user_data_analyst="data-analyst-password";
     depends_on:
-      - zookeeper
-    restart: always
+      - zookeeper # Kafka tergantung pada ZooKeeper
+    restart: always # Selalu restart kontainer jika berhenti
     # Menjalankan JMX Exporter sebagai proses terpisah di dalam kontainer Kafka
     # Membutuhkan file jmx_exporter.jar dan config.yml di folder ./jmx_exporter
     command: ["sh", "-c", "java -jar /etc/jmx_exporter/jmx_exporter.jar 9991 /etc/jmx_exporter/config.yml & /etc/confluent/docker/run"]
@@ -65,7 +68,7 @@ services:
     environment:
       KAFKA_BROKER_ID: 2
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT_HOST,SASL_PLAINTEXT:SASL_PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:29092,PLAINTEXT_HOST://localhost:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
@@ -73,8 +76,8 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
       KAFKA_JMX_PORT: 9992
       KAFKA_JMX_HOSTNAME: 0.0.0.0
-      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
-      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_AUTHORIZER_CLASS_NAME: ""
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
       KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_SASL_JAAS_CONFIG: |
         org.apache.kafka.common.security.plain.PlainLoginModule required
@@ -100,7 +103,7 @@ services:
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT_HOST,SASL_PLAINTEXT:SASL_PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:29092,PLAINTEXT_HOST://localhost:9094
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
@@ -108,8 +111,8 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
       KAFKA_JMX_PORT: 9993
       KAFKA_JMX_HOSTNAME: 0.0.0.0
-      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
-      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_AUTHORIZER_CLASS_NAME: ""
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
       KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_SASL_JAAS_CONFIG: |
         org.apache.kafka.common.security.plain.PlainLoginModule required
@@ -135,7 +138,7 @@ services:
     environment:
       KAFKA_BROKER_ID: 4
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT_HOST,SASL_PLAINTEXT:SASL_PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka4:29092,PLAINTEXT_HOST://localhost:9095
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
@@ -143,8 +146,8 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
       KAFKA_JMX_PORT: 9994
       KAFKA_JMX_HOSTNAME: 0.0.0.0
-      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
-      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_AUTHORIZER_CLASS_NAME: ""
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
       KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_SASL_JAAS_CONFIG: |
         org.apache.kafka.common.security.plain.PlainLoginModule required
@@ -170,7 +173,7 @@ services:
     environment:
       KAFKA_BROKER_ID: 5
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT_HOST,SASL_PLAINTEXT:SASL_PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka5:29092,PLAINTEXT_HOST://localhost:9096
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
@@ -178,8 +181,8 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
       KAFKA_JMX_PORT: 9995
       KAFKA_JMX_HOSTNAME: 0.0.0.0
-      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.auth.SimpleAclAuthorizer
-      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_AUTHORIZER_CLASS_NAME: ""
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
       KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_SASL_JAAS_CONFIG: |
         org.apache.kafka.common.security.plain.PlainLoginModule required
@@ -215,15 +218,15 @@ services:
 
   # Layanan Prometheus
   prometheus:
-    image: prom/prometheus:latest # Menggunakan image Prometheus terbaru
+    image: prom/prometheus:latest
     container_name: prometheus
     ports:
-      - "9090:9090" # Port untuk UI Prometheus
+      - "9090:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml # Mount file konfigurasi Prometheus
-    command: --config.file=/etc/prometheus/prometheus.yml # Menentukan file konfigurasi
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command: --config.file=/etc/prometheus/prometheus.yml
     depends_on:
-      - kafka1 # Prometheus tergantung pada broker Kafka untuk scrape JMX
+      - kafka1
       - kafka2
       - kafka3
       - kafka4
@@ -232,10 +235,10 @@ services:
 
   # Layanan Grafana
   grafana:
-    image: grafana/grafana:latest # Menggunakan image Grafana terbaru
+    image: grafana/grafana:latest
     container_name: grafana
     ports:
-      - "3000:3000" # Port untuk UI Grafana
+      - "3000:3000"
     depends_on:
-      - prometheus # Grafana tergantung pada Prometheus sebagai sumber data
+      - prometheus
     restart: always
